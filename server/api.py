@@ -1,5 +1,5 @@
 
-   from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -65,11 +65,12 @@ def initialize_components():
             # Log configuration
             if config_manager and config_manager.config:
                 config_summary = {
-                    "assistant_name": config_manager.config.assistant.name,
-                    "llm_provider": config_manager.config.llm.provider,
-                    "llm_model": config_manager.config.llm.model,
-                    "stt_engine": config_manager.config.speech.stt_engine,
-                    "tts_engine": config_manager.config.speech.tts_engine
+                    # Changed from config.assistant.name to config.name
+                    "assistant_name": getattr(config_manager.config, 'name', 'Jarvis'),
+                    "llm_provider": getattr(config_manager.config.llm, 'provider', 'unknown'),
+                    "llm_model": getattr(config_manager.config.llm, 'model', 'unknown'),
+                    "stt_engine": getattr(config_manager.config.speech, 'stt_engine', 'unknown'),
+                    "tts_engine": getattr(config_manager.config.speech, 'tts_engine', 'unknown')
                 }
                 print(f"📋 Configuration: {json.dumps(config_summary, indent=2)}")
             
@@ -840,14 +841,15 @@ async def list_available_models():
         raise HTTPException(status_code=500, detail=f"Error listing models: {str(e)}")
 
 @app.get("/system/info", tags=["Status"], response_model=Dict[str, Any])
-async def system_info(): """Get detailed system information"""
+async def system_info():
+    """Get detailed system information"""
     import platform
     import sys
     import psutil
     
     try:
         # System information
-        system_info = {
+        sys_data = {
             "python_version": sys.version,
             "platform": platform.platform(),
             "processor": platform.processor(),
@@ -884,7 +886,7 @@ async def system_info(): """Get detailed system information"""
         }
         
         return {
-            "system": system_info,
+            "system": sys_data,
             "memory": memory_info,
             "disk": disk_info,
             "process": process_info,
@@ -893,11 +895,9 @@ async def system_info(): """Get detailed system information"""
         }
         
     except Exception as e:
-        return {
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
+        # It's better to use HTTPException here so the API returns a 500 status code
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # ==================== ERROR HANDLERS ====================
 
 @app.exception_handler(HTTPException)
