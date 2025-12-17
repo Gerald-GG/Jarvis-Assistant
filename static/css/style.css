@@ -1,81 +1,146 @@
+:root {
+    --bg-color: #050a0f;
+    --card-bg: rgba(16, 25, 35, 0.6); /* Slightly more transparent for floating look */
+    --accent-blue: #00d2ff;
+    --jarvis-glow: rgba(0, 210, 255, 0.3);
+    --text-main: #e6edf3;
+    --text-dim: #8b949e;
+    --user-bubble: #1c2128;
+    --border-color: #30363d;
+    --glass-border: rgba(0, 210, 255, 0.2);
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #1e1e2f;
-    color: #fff;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(circle at center, #0a1929 0%, #050a0f 100%);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    margin: 0;
+    min-height: 100vh; /* Allows page to grow as you chat */
+    overflow-x: hidden;
 }
 
+/* Updated to be a floating HUD rather than a fixed window */
 .chat-container {
-    width: 100%;
-    max-width: 600px;
-    background: rgba(40, 40, 60, 0.9);
-    border-radius: 12px;
-    padding: 20px;
+    width: 95%;
+    max-width: 700px;
     display: flex;
     flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    position: relative;
 }
 
-.chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    max-height: 400px;
-    margin-bottom: 15px;
+/* Scanline Effect applied to the whole background instead of just a box */
+body::before {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.2;
 }
 
+h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    text-shadow: 0 0 15px var(--accent-blue);
+    margin-bottom: 20px;
+}
+
+/* Chat Messages */
+#chat.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Message Bubbles - Using your specific tech-styling */
 .message {
-    margin-bottom: 12px;
-    padding: 10px;
-    border-radius: 10px;
-    word-wrap: break-word;
+    padding: 18px 22px;
+    border-radius: 4px;
+    line-height: 1.6;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .user-message {
-    background: rgba(0, 123, 255, 0.2);
     align-self: flex-end;
+    background-color: var(--user-bubble);
+    border: 1px solid var(--border-color);
+    border-right: 4px solid var(--text-dim);
+    max-width: 80%;
 }
 
 .jarvis-message {
-    background: rgba(40, 167, 69, 0.2);
-    align-self: flex-start;
+    align-self: stretch; /* Full width like a HUD readout */
+    background: linear-gradient(90deg, rgba(0, 210, 255, 0.1) 0%, rgba(16, 25, 35, 0.4) 100%);
+    border: 1px solid var(--glass-border);
+    border-left: 4px solid var(--accent-blue);
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.05);
 }
 
 .message-sender {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 0.85em;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    color: var(--accent-blue);
 }
 
-.message-content {
-    font-size: 1em;
-}
-
+/* Floating Input Bar - Styled like your screenshot but with your colors */
 .input-area {
+    margin-top: 10px;
+    padding: 10px;
+    background: #eef3f8; /* Kept the light bar from your screenshot for contrast */
+    border-radius: 8px;
     display: flex;
     gap: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 101; /* Above scanlines */
 }
 
 #msg {
     flex: 1;
-    padding: 10px;
-    border-radius: 8px;
+    background: transparent;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    padding: 12px;
+    color: #1a1a1a;
+    font-family: 'Consolas', monospace;
+    font-size: 1rem;
+    outline: none;
 }
 
 #sendBtn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background: #00d2ff;
-    color: #fff;
+    background: #002b36;
+    color: var(--accent-blue);
+    border: 1px solid var(--accent-blue);
+    padding: 0 25px;
+    border-radius: 4px;
     cursor: pointer;
+    text-transform: uppercase;
+    font-weight: bold;
+    transition: all 0.3s ease;
 }
 
 #sendBtn:hover {
-    background: #3a7bd5;
+    background: var(--accent-blue);
+    color: #000;
+    box-shadow: 0 0 15px var(--accent-blue);
 }
