@@ -1,0 +1,20 @@
+assistant:
+  name: "Jarvis"
+  wake_word: "jarvis"
+  
+llm:
+  provider: "openai"  # openai, anthropic, local
+  model: "gpt-3.5-turbo"
+  temperature: 0.7
+  # api_key: "your_key_here"  # Add your actual key in config.yaml
+
+speech:
+  stt_engine: "whisper"  # whisper, google
+  tts_engine: "pyttsx3"  # pyttsx3, gtts
+  language: "en-US"
+  
+memory:
+  enabled: true
+  max_history: 10
+
+# Add your API keys in the actual config.yaml (not committed to git)
