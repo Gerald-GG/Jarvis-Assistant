@@ -1,6 +1,6 @@
 :root {
     --bg-color: #050a0f;
-    --card-bg: rgba(16, 25, 35, 0.6); /* Slightly more transparent for floating look */
+    --card-bg: rgba(16, 25, 35, 0.6);
     --accent-blue: #00d2ff;
     --jarvis-glow: rgba(0, 210, 255, 0.3);
     --text-main: #e6edf3;
@@ -19,11 +19,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh; /* Allows page to grow as you chat */
+    min-height: 100vh;
     overflow-x: hidden;
 }
 
-/* Updated to be a floating HUD rather than a fixed window */
+/* Floating HUD Container */
 .chat-container {
     width: 95%;
     max-width: 700px;
@@ -34,7 +34,7 @@ body {
     position: relative;
 }
 
-/* Scanline Effect applied to the whole background instead of just a box */
+/* Full-screen Scanline Effect */
 body::before {
     content: " ";
     display: block;
@@ -58,25 +58,19 @@ h2 {
     margin-bottom: 20px;
 }
 
-/* Chat Messages */
 #chat.chat-messages {
     display: flex;
     flex-direction: column;
     gap: 15px;
 }
 
-/* Message Bubbles - Using your specific tech-styling */
 .message {
     padding: 18px 22px;
     border-radius: 4px;
     line-height: 1.6;
     backdrop-filter: blur(10px);
+    /* Combined slide-in and pulse animations */
     animation: slideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .user-message {
@@ -88,11 +82,13 @@ h2 {
 }
 
 .jarvis-message {
-    align-self: stretch; /* Full width like a HUD readout */
+    align-self: stretch;
     background: linear-gradient(90deg, rgba(0, 210, 255, 0.1) 0%, rgba(16, 25, 35, 0.4) 100%);
     border: 1px solid var(--glass-border);
     border-left: 4px solid var(--accent-blue);
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.05);
+    /* Pulse animation specific to Jarvis */
+    animation: slideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), 
+               pulseGlow 4s infinite ease-in-out;
 }
 
 .message-sender {
@@ -104,16 +100,16 @@ h2 {
     color: var(--accent-blue);
 }
 
-/* Floating Input Bar - Styled like your screenshot but with your colors */
+/* Floating Input Bar */
 .input-area {
     margin-top: 10px;
     padding: 10px;
-    background: #eef3f8; /* Kept the light bar from your screenshot for contrast */
+    background: #eef3f8; 
     border-radius: 8px;
     display: flex;
     gap: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    z-index: 101; /* Above scanlines */
+    z-index: 101;
 }
 
 #msg {
@@ -143,4 +139,25 @@ h2 {
     background: var(--accent-blue);
     color: #000;
     box-shadow: 0 0 15px var(--accent-blue);
+}
+
+/* ANIMATIONS */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(0, 210, 255, 0.1);
+        border-color: rgba(0, 210, 255, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(0, 210, 255, 0.4);
+        border-color: rgba(0, 210, 255, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(0, 210, 255, 0.1);
+        border-color: rgba(0, 210, 255, 0.2);
+    }
 }
