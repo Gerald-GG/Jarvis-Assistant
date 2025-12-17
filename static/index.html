@@ -2,20 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jarvis Assistant</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="chat-container">
         <h2>Jarvis Assistant</h2>
-        <div id="chat" class="chat-messages"></div>
-
+        <div id="chat" class="chat-messages">
+            <div class="message jarvis-message">
+                <div class="message-sender">Jarvis</div>
+                <div class="message-content">Hello! I'm Jarvis, your AI assistant. How can I help you today?</div>
+            </div>
+        </div>
         <div class="input-area">
             <input type="text" id="msg" placeholder="Type a message..." autofocus>
             <button id="sendBtn">Send</button>
         </div>
     </div>
 
-    <script src="/static/js/main.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
