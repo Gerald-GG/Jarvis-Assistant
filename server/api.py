@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
+
+   from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -839,8 +840,7 @@ async def list_available_models():
         raise HTTPException(status_code=500, detail=f"Error listing models: {str(e)}")
 
 @app.get("/system/info", tags=["Status"], response_model=Dict[str, Any])
-async def system_info():
-    """Get detailed system information"""
+async def system_info(): """Get detailed system information"""
     import platform
     import sys
     import psutil
