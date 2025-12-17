@@ -2,125 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Jarvis Web</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #1e1e1e;
-            color: #f0f0f0;
-            margin: 0;
-            padding: 20px;
-        }
-
-        h2 {
-            text-align: center;
-            color: #00d2ff;
-        }
-
-        #chat {
-            border: 1px solid #555;
-            padding: 15px;
-            height: 400px;
-            overflow-y: auto;
-            background: #2a2a2a;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .message {
-            margin: 8px 0;
-            padding: 8px 12px;
-            border-radius: 5px;
-        }
-
-        .user {
-            background: #0055ff33;
-            text-align: right;
-        }
-
-        .jarvis {
-            background: #00ff9933;
-            text-align: left;
-        }
-
-        #msg {
-            width: 80%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #555;
-            background: #2a2a2a;
-            color: #f0f0f0;
-        }
-
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            background: #00d2ff;
-            color: #1e1e1e;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #00b2dd;
-        }
-    </style>
+    <title>Jarvis Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <h2>Jarvis Assistant</h2>
+    <div class="chat-container">
+        <h2>Jarvis Assistant</h2>
+        <div id="chat" class="chat-messages"></div>
 
-    <div id="chat"></div>
+        <div class="input-area">
+            <input type="text" id="msg" placeholder="Type a message..." autofocus>
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
 
-    <input id="msg" placeholder="Type message" onkeypress="handleKeyPress(event)">
-    <button onclick="send()">Send</button>
-
-    <script>
-        const API = "http://localhost:8000";
-
-        // Add message to chat
-        function add(sender, text) {
-            const div = document.createElement("div");
-            div.className = "message " + (sender === "You" ? "user" : "jarvis");
-            div.innerHTML = `<b>${sender}:</b> ${text}`;
-            const chat = document.getElementById("chat");
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight; // Auto scroll to bottom
-        }
-
-        // Send message to API
-        async function send() {
-            const input = document.getElementById("msg");
-            const text = input.value.trim();
-            if (!text) return;
-
-            input.value = "";
-            add("You", text);
-
-            try {
-                const res = await fetch(API + "/query", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text })
-                });
-
-                if (!res.ok) throw new Error("API request failed");
-
-                const data = await res.json();
-                add("Jarvis", data.response || "No response from Jarvis.");
-            } catch (err) {
-                add("Jarvis", `Error: ${err.message}`);
-            }
-        }
-
-        // Press Enter to send
-        function handleKeyPress(event) {
-            if (event.key === "Enter") send();
-        }
-
-        // Initial greeting
-        window.onload = () => {
-            add("Jarvis", "Hello! I am Jarvis, your AI assistant. How can I help you today?");
-        };
-    </script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
