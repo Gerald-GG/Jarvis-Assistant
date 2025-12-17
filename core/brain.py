@@ -1,6 +1,7 @@
 import os
 import time
 import traceback
+from datetime import datetime  # Added for real-time grounding
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
@@ -53,14 +54,23 @@ class GoogleClient(BaseLLM):
 
     def generate_response(self, prompt: str, context: Optional[List] = None) -> str:
         try:
-            formatted_messages = []
+            # Get the current date and time dynamically
+            now = datetime.now()
+            current_time_str = now.strftime("%A, %B %d, %Y %I:%M %p")
             
-            # 1. System Instruction - Modern 2025 approach
-            system_instruction = "You are Jarvis, a helpful AI assistant. Respond concisely."
+            # 1. Dynamic System Instruction
+            system_instruction = (
+                f"You are Jarvis, a helpful AI assistant. "
+                f"The current date and time is {current_time_str}. "
+                f"Respond concisely and accurately."
+            )
+            
+            formatted_messages = []
             
             # 2. History & Content Building
             if context:
-                for msg in context[-5:]: # Reduced to last 5 for maximum stability
+                # Reduced to last 5 for maximum stability and speed
+                for msg in context[-5:]: 
                     role = msg.get('role', 'user')
                     content = str(msg.get('content', ''))
                     if role == 'user':
@@ -68,21 +78,22 @@ class GoogleClient(BaseLLM):
                     else:
                         formatted_messages.append(AIMessage(content=content))
 
-            # 3. Final Human Message (Merging system instruction if list is empty)
+            # 3. Final Prompt Construction
             if not formatted_messages:
                 # If no history, put the system prompt and user prompt together
                 full_prompt = f"{system_instruction}\n\nUser: {prompt}"
                 formatted_messages.append(HumanMessage(content=full_prompt))
             else:
-                formatted_messages.append(HumanMessage(content=str(prompt)))
+                # For existing conversations, prepend system context to keep the LLM updated
+                full_prompt = f"[System Context: Today is {current_time_str}]\nUser: {prompt}"
+                formatted_messages.append(HumanMessage(content=full_prompt))
             
             # 4. Invoke the model
             response = self.llm.invoke(formatted_messages)
             return response.content
             
         except Exception as e:
-            print(f"--- CRITICAL BRAIN ERROR ---")
-            print(traceback.format_exc())
+            print(f"DEBUG ERROR: {traceback.format_exc()}")
             return f"Jarvis Error: {str(e)}"
 
 class OpenAIClient(BaseLLM):
@@ -147,11 +158,9 @@ class Brain:
         return FallbackLLM()
 
     def process_query(self, query: str, context: Optional[dict] = None) -> str:
-        """Fixed: Now accepts the context argument from api.py"""
         if not self.is_available():
             return "Jarvis is offline. Check your API configuration."
         
-        # Use our internal conversation_history for the LLM context
         response = self.llm_client.generate_response(query, self.conversation_history)
         
         self.conversation_history.append({"role": "user", "content": query})
@@ -163,7 +172,6 @@ class Brain:
         return response
 
     def clear_memory(self):
-        """Added: Required by the /memory/clear endpoint in api.py"""
         self.conversation_history = []
         return True
 
