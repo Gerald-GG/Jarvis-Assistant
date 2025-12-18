@@ -1,32 +1,34 @@
 import os
 import tempfile
+import traceback
 import speech_recognition as sr
 import pyttsx3
 import whisper
+from io import BytesIO
 from abc import ABC, abstractmethod
-from typing import Optional, BinaryIO
+from typing import Optional, BinaryIO, Dict
 from utils.config import ConfigManager
 
 class BaseSTT(ABC):
     @abstractmethod
-    def transcribe(self, audio_data: BinaryIO) -> str:
-        pass
+    def transcribe(self, audio_data: BinaryIO) -> str: pass
 
 class WhisperSTT(BaseSTT):
     def __init__(self, model_size: str = "base"):
+        print(f"📦 Loading Whisper model ({model_size})...")
         self.model = whisper.load_model(model_size)
         
     def transcribe(self, audio_data: BinaryIO) -> str:
-        # Save audio to temp file for Whisper
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             tmp.write(audio_data.read())
             tmp_path = tmp.name
             
         try:
             result = self.model.transcribe(tmp_path, fp16=False)
-            return result["text"]
+            return result["text"].strip()
         finally:
-            os.unlink(tmp_path)
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 
 class GoogleSTT(BaseSTT):
     def __init__(self, language: str = "en-US"):
@@ -34,104 +36,110 @@ class GoogleSTT(BaseSTT):
         self.language = language
         
     def transcribe(self, audio_data: BinaryIO) -> str:
-        # Convert audio_data to AudioData for SpeechRecognition
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            tmp.write(audio_data.read())
-            tmp_path = tmp.name
-            
         try:
-            with sr.AudioFile(tmp_path) as source:
+            with sr.AudioFile(audio_data) as source:
                 audio = self.recognizer.record(source)
-                text = self.recognizer.recognize_google(audio, language=self.language)
-                return text
-        except sr.UnknownValueError:
+                return self.recognizer.recognize_google(audio, language=self.language)
+        except (sr.UnknownValueError, sr.RequestError):
             return ""
-        except sr.RequestError as e:
-            return f"STT Error: {str(e)}"
-        finally:
-            os.unlink(tmp_path)
 
 class BaseTTS(ABC):
     @abstractmethod
-    def speak(self, text: str):
-        pass
+    def speak(self, text: str): pass
 
 class PyTTSx3TTS(BaseTTS):
     def __init__(self):
         self.engine = pyttsx3.init()
-        self.engine.setProperty('rate', 150)
-        self.engine.setProperty('volume', 0.9)
+        self._setup_voice()
         
+    def _setup_voice(self):
+        voices = self.engine.getProperty('voices')
+        self.engine.setProperty('rate', 175) 
+        self.engine.setProperty('volume', 1.0)
+        
+        for voice in voices:
+            if "david" in voice.name.lower() or "alex" in voice.name.lower():
+                self.engine.setProperty('voice', voice.id)
+                break
+
     def speak(self, text: str):
         self.engine.say(text)
         self.engine.runAndWait()
 
 class ElevenLabsTTS(BaseTTS):
-    def __init__(self, api_key: str, voice_id: str = "Rachel"):
-        from elevenlabs import generate, play, set_api_key
-        set_api_key(api_key)
-        self.generate = generate
-        self.play = play
-        self.voice_id = voice_id
-        
+    def __init__(self, api_key: str, voice_id: str = "George"):
+        try:
+            from elevenlabs.client import ElevenLabs
+            from elevenlabs import play
+            self.client = ElevenLabs(api_key=api_key)
+            self.play = play
+            self.voice_id = voice_id
+        except ImportError:
+            print("❌ ElevenLabs SDK missing. Run: pip install elevenlabs")
+
     def speak(self, text: str):
-        audio = self.generate(text=text, voice=self.voice_id)
-        self.play(audio)
+        try:
+            audio = self.client.generate(
+                text=text,
+                voice=self.voice_id,
+                model="eleven_multilingual_v2"
+            )
+            self.play(audio)
+        except Exception as e:
+            print(f"ElevenLabs Error: {e}")
 
 class SpeechProcessor:
     def __init__(self, config_manager: ConfigManager):
-        self.config = config_manager.config
+        self.config = getattr(config_manager, 'config', config_manager)
+        self.recognizer = sr.Recognizer()
         self.stt_engine = self._initialize_stt()
         self.tts_engine = self._initialize_tts()
-        self.recognizer = sr.Recognizer()
         
     def _initialize_stt(self) -> BaseSTT:
         stt_config = self.config.speech
-        if stt_config.stt_engine.lower() == "whisper":
+        engine_type = stt_config.stt_engine.lower()
+        
+        if engine_type == "whisper":
             return WhisperSTT()
-        elif stt_config.stt_engine.lower() == "google":
+        elif engine_type == "google":
             return GoogleSTT(language=stt_config.language)
         else:
-            raise ValueError(f"Unsupported STT engine: {stt_config.stt_engine}")
+            raise ValueError(f"Unsupported STT engine: {engine_type}")
     
     def _initialize_tts(self) -> BaseTTS:
         tts_config = self.config.speech
-        if tts_config.tts_engine.lower() == "pyttsx3":
+        engine_type = tts_config.tts_engine.lower()
+        
+        if engine_type == "pyttsx3":
             return PyTTSx3TTS()
-        elif tts_config.tts_engine.lower() == "elevenlabs":
+        elif engine_type == "elevenlabs":
             api_key = os.getenv("ELEVENLABS_API_KEY", "")
             return ElevenLabsTTS(api_key=api_key)
         else:
-            raise ValueError(f"Unsupported TTS engine: {tts_config.tts_engine}")
+            raise ValueError(f"Unsupported TTS engine: {engine_type}")
     
-    def listen_from_mic(self, timeout: int = 5, phrase_time_limit: int = 10) -> Optional[str]:
-        """Listen from microphone and return transcribed text"""
-        with sr.Microphone() as source:
-            print("Listening...")
-            try:
-                audio = self.recognizer.listen(
-                    source, 
-                    timeout=timeout,
-                    phrase_time_limit=phrase_time_limit
-                )
+    def listen_from_mic(self) -> Optional[str]:
+        """Local microphone capture optimized for Linux/PulseAudio."""
+        # device_index=4 is 'pulse' based on your list_mics.py output
+        try:
+            with sr.Microphone(device_index=4) as source:
+                print("Listening (via PulseAudio)...")
                 
-                # Convert AudioData to bytes for STT engine
-                audio_data = audio.get_wav_data()
-                return self.stt_engine.transcribe(BytesIO(audio_data))
+                # Calibrate for background noise (increased to 2s for Linux stability)
+                self.recognizer.adjust_for_ambient_noise(source, duration=2.0)
                 
-            except sr.WaitTimeoutError:
-                print("No speech detected")
-                return None
-            except Exception as e:
-                print(f"Error listening: {e}")
-                return None
+                # Manual sensitivity settings
+                self.recognizer.energy_threshold = 150 
+                self.recognizer.dynamic_energy_threshold = False
+                
+                audio = self.recognizer.listen(source, timeout=7, phrase_time_limit=10)
+                audio_data = BytesIO(audio.get_wav_data())
+                return self.stt_engine.transcribe(audio_data)
+        except Exception as e:
+            print(f"🎙️ Mic Error: {e}")
+            return None
     
     def speak_text(self, text: str):
-        """Convert text to speech"""
-        print(f"Speaking: {text}")
+        if not text: return
+        print(f"🎙️ Jarvis: {text}")
         self.tts_engine.speak(text)
-    
-    def process_audio_file(self, audio_path: str) -> str:
-        """Transcribe audio from file"""
-        with open(audio_path, 'rb') as f:
-            return self.stt_engine.transcribe(f)
